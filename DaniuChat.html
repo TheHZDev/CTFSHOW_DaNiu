@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>大牛聊天室</title>
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.6.0.min.js"></script>
+    <script src="https://pajhome.org.uk/crypt/md5/2.2/md5-min.js"></script>
+    <script src="/DaNiu.js"></script>
+</head>
+<style>
+    #inputTextDiv button, label, input {
+        font-size: xx-large;
+    }
+
+    .leftText {
+        position: fixed;
+        left: 10px;
+        font-size: x-large;
+        border: 2px solid lightblue;
+        border-radius: 10px;
+        padding: 5px;
+        background-color: lightblue;
+        max-width: 80%;
+    }
+
+    .rightText {
+        position: fixed;
+        right: 10px;
+        font-size: x-large;
+        border: 2px solid lightgreen;
+        border-radius: 10px;
+        padding: 5px;
+        background-color: lightgreen;
+        max-width: 80%;
+    }
+</style>
+<body>
+<div id="inputTextDiv">
+    <label for="killDaNiu">来和大牛聊天吧：</label>
+    <input type="text" id="killDaNiu" style="width: 40%">
+    <button onclick="talkWithDaNiu();">发送</button>
+</div>
+<div id="chatWithDaNiu"></div>
+<script>
+    let chatWithDaNiuDiv = $('#chatWithDaNiu');
+
+    function talkWithDaNiu() {
+        let DaNiuInput = $('#killDaNiu');
+        let toTalk = DaNiuInput.val();
+        DaNiuInput.val("");
+        if (toTalk.length === 0){
+            alert("要聊天的消息不能为空！");
+            return;
+        }
+        showText(toTalk);
+        if (!specialFilter(toTalk))
+            setTimeout(function () {
+                DaNiuReply(toTalk);
+            }, 500);
+    }
+
+    function showText(text, right = true) {
+        let newDiv = document.createElement('div');
+        let newP = document.createElement('p');
+        newP.innerText = text;
+        if (right)
+            newP.setAttribute('class', 'rightText');
+        else
+            newP.setAttribute('class', 'leftText');
+        newDiv.appendChild(newP);
+        newDiv.appendChild(document.createElement('br'));
+        newP = document.createElement('p');
+        newP.setAttribute('style', 'font-size: 30px');
+        newDiv.appendChild(newP);
+        chatWithDaNiuDiv.append(newDiv);
+        delTopText();
+    }
+    
+    $(document).ready(function () {
+        $('#killDaNiu').bind('keypress', function (event) {
+            if (event.keyCode === 13)
+                talkWithDaNiu();
+        });
+    });
+
+    function DaNiuReply(keyWord) {
+        for (const keyText in DaNiuDict)
+            if (keyText === keyWord){
+                showText(DaNiuDict[keyText], false);
+                return;
+            }
+    }
+
+    function specialFilter(originText) {
+        if (originText.startsWith('kw ') && strCount(originText, ' ') >= 2)
+            return addNewText(originText);
+        else if (originText === '萌新码'){
+            showText('萌新码（萌新-萌新认证）：' + hex_md5(String(Math.random() * 10000)), false);
+            return true
+        }
+    }
+
+    function addNewText(originText) {
+        $.ajax({
+            url: '/Deal_kw.php',
+            method: 'post',
+            data: {'query': originText},
+            success: function (data, textStatus, jqXHR) {
+                $.ajax({
+                    url: '/DaNiuChat.php',
+                    method: 'post',
+                    data: data,
+                    success: function (data, textStatus, jqXHR){
+                        showText(data, false);
+                        $.getScript('./DaNiuChat.php');
+                    }
+                });
+            }
+        });
+        return true;
+    }
+
+    // 辅助函数
+    function strCount(originStr, toSearch){
+        let count = 0, curIndex = originStr.indexOf(toSearch);
+        while (curIndex !== -1){
+            count += 1;
+            curIndex = originStr.indexOf(toSearch, curIndex + 1);
+        }
+        return count
+    }
+
+    function delTopText() {
+        if (chatWithDaNiuDiv.children().length > 10)
+            chatWithDaNiuDiv.children()[0].remove();
+    }
+</script>
+</body>
+</html>
